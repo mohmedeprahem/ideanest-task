@@ -9,6 +9,6 @@ services:
       - "8080:8080"
     volumes:
       - .:/usr/src/app
-    env_file:
-      - .env
+    environment:
+      MONGODB_URI: ${MONGODB_URI}
     command: go run cmd/main.go
