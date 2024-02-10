@@ -1,13 +1,13 @@
 package main
 
 import (
-	database "ideanest-task/pkg/database/mongodb"
+	app "ideanest-task/pkg"
 
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	database.ConnectDB()
+	app.Run()
 	r := gin.Default()
 
 	r.Run()
