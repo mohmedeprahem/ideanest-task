@@ -10,7 +10,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func ConnectDB() {
+func ConnectDB() *mongo.Client {
 	viper.SetConfigName("config/database-config")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(".")
@@ -36,4 +36,12 @@ func ConnectDB() {
 		log.Fatal(err)
 	}
 
+	return client
+}
+
+var DB *mongo.Client = ConnectDB()
+
+func GetCollection(client *mongo.Client, collectionName string) *mongo.Collection {
+	collection := client.Database("test").Collection(collectionName)
+	return collection
 }
