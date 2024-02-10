@@ -1,0 +1,2 @@
+mongodb:
+  uri: mongodb+srv://mohmed123:mohmed123@cluster0.yi9werh.mongodb.net/test?retryWrites=true&w=majority
