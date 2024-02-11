@@ -24,7 +24,7 @@ func NewAuthController() *UserController {
 	}
 }
 
-func (c *UserController) Create(ctx *gin.Context) {
+func (c *UserController) SignUp(ctx *gin.Context) {
 	// Get user data from request body
 	var user models.User
 	if err := ctx.ShouldBindJSON(&user); err != nil {
