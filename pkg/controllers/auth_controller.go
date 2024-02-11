@@ -196,3 +196,56 @@ func (c *UserController) RefreshToken(ctx *gin.Context) {
 	})
 
 }
+
+// Revoke token
+func (c *UserController) RevokeToken(ctx *gin.Context) {
+	configApp, _ := utils.ReadAppConfig()
+	// Get refresh token from request body
+	var input RefreshTokenRequest
+	if err := ctx.ShouldBindJSON(&input); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Check if refresh token is valid
+	if isNotValid, err := utils.IsTokenInvalid(input.RefreshToken, configApp.Jwt.RtSecret); isNotValid || err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid refresh token"})
+		return
+	}
+
+	// Check if refresh token exists
+	value, err := utils.GetRedisValue(input.RefreshToken);
+	if err != nil {
+	    ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid refresh token"})
+	    return
+	}
+
+	if value != "1" {
+		ctx.JSON(http.StatusForbidden, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	// revoke refresh token
+	err = utils.DeleteRedisValue(input.RefreshToken)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid refresh token"})
+		return
+	}
+
+	err = utils.SetRedisValue(input.RefreshToken, false, time.Hour*24*7)
+	if err != nil {
+			ctx.JSON(http.StatusForbidden, gin.H{"error": "internal server error"})
+			return
+	}
+
+	// Delete access token from Header if exists
+	if ctx.GetHeader("Authorization") != "" {
+		ctx.Request.Header.Del("Authorization")
+	}
+
+	// Return successful response
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": "revoke token successful",
+	})
+
+}
