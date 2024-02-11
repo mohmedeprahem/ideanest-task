@@ -10,4 +10,6 @@ func AuthRoute(router *gin.Engine) {
     authController := controllers.NewAuthController()
 
     router.POST("/signup", authController.SignUp)
+		router.POST("/signin", authController.SignIn)
 }
+
