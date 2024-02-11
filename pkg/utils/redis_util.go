@@ -22,3 +22,11 @@ var RedisClient = NewRedisClient()
 func SetRedisValue(key string, value bool, expiration time.Duration) error {
 	return RedisClient.Set(context.Background(), key, value, expiration).Err()
 }
+
+func GetRedisValue(key string) (string, error) {
+	return RedisClient.Get(context.Background(), key).Result()
+}
+
+func DeleteRedisValue(key string) error {
+	return RedisClient.Del(context.Background(), key).Err()
+}
