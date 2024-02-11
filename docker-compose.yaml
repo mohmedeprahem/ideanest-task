@@ -12,3 +12,9 @@ services:
     environment:
       MONGODB_URI: ${MONGODB_URI}
     command: go run cmd/main.go
+  redis:
+    container_name: "redis"
+    image: redis:alpine
+    command: redis-server
+    ports:
+      - "6379:6379"
