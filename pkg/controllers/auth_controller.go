@@ -23,6 +23,10 @@ type SignInRequest struct {
 	Password string `json:"password" binding:"required,min=8"`
 }
 
+type RefreshTokenRequest struct {
+	RefreshToken string `json:"refreshToken" binding:"required"`
+}
+
 
 var validate = validator.New()
 
@@ -75,6 +79,7 @@ func (c *UserController) SignIn(ctx *gin.Context) {
 	var input  SignInRequest
 	if err := ctx.ShouldBindJSON(&input); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
 
 	// Check if user exists
@@ -104,6 +109,7 @@ func (c *UserController) SignIn(ctx *gin.Context) {
 	refreshToken, err := utils.GenerateRefreshToken(user.ID.Hex())
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
 	}
 
 	// Save refresh token in redis
@@ -120,4 +126,68 @@ func (c *UserController) SignIn(ctx *gin.Context) {
 		"access_token": accessToken,
 		"refresh_token": refreshToken,
 	})
+}
+
+// refresh token
+func (c *UserController) RefreshToken(ctx *gin.Context) {
+	// Get refresh token from request body
+	var input RefreshTokenRequest
+	if err := ctx.ShouldBindJSON(&input); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Check if refresh token exists
+	IsActive, err := utils.GetRedisValue(input.RefreshToken)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid refresh token"})
+		return
+	}
+
+	log.Println(IsActive)
+
+	if IsActive != "1" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "is not active refresh token"})
+		return
+	}
+
+	// revoke refresh token
+	err = utils.DeleteRedisValue(input.RefreshToken)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
+
+	err = utils.SetRedisValue(input.RefreshToken, false, time.Hour*24*7)
+	if err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+			return
+	}
+
+	// Generate new access token
+	accessToken, err := utils.GenerateAccessToken(input.RefreshToken)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
+
+	refreshToken, err := utils.GenerateRefreshToken(input.RefreshToken)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+	}
+
+	// Save new refresh token in redis
+	err = utils.SetRedisValue(refreshToken, true, time.Hour*24*7)
+	if err != nil {
+	    ctx.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+	    return
+	}
+
+	// Return successful response
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": "refresh token successful",
+		"access_token": accessToken,
+		"refresh_token": refreshToken,
+	})
+
 }
