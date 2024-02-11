@@ -33,3 +33,31 @@ func GenerateRefreshToken(id string) (string, error) {
 	})
 	return token.SignedString([]byte(config.Jwt.RtSecret))
 }
+
+func IsTokenInvalid(tokenString string, secretKey string) (bool, error) {
+	// Parse the token
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+			return []byte(secretKey), nil
+	})
+	if err != nil {
+			return false, err
+	}
+
+	// Check if token is valid and contains expiration claim
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+			// Retrieve expiration time
+			exp := int64(claims["exp"].(float64))
+
+			// Compare expiration time with current time
+			if exp < time.Now().Unix() {
+					// Token has expired
+					return true, nil
+			}
+
+			// Token is not expired
+			return false, nil
+	}
+
+	// Token is invalid or does not contain expiration claim
+	return false, nil
+}

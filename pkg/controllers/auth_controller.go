@@ -130,10 +130,17 @@ func (c *UserController) SignIn(ctx *gin.Context) {
 
 // refresh token
 func (c *UserController) RefreshToken(ctx *gin.Context) {
+	configApp, _ := utils.ReadAppConfig()
 	// Get refresh token from request body
 	var input RefreshTokenRequest
 	if err := ctx.ShouldBindJSON(&input); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Check if refresh token is valid
+	if isNotValid, err := utils.IsTokenInvalid(input.RefreshToken, configApp.Jwt.RtSecret); isNotValid || err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "12invalid refresh token"})
 		return
 	}
 
@@ -143,8 +150,6 @@ func (c *UserController) RefreshToken(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid refresh token"})
 		return
 	}
-
-	log.Println(IsActive)
 
 	if IsActive != "1" {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "is not active refresh token"})
